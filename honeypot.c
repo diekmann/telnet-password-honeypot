@@ -501,9 +501,9 @@ int main(int argc, char *argv[])
 			char ipaddr[INET6_ADDRSTRLEN];
 			memset(ipaddr, 0, sizeof(ipaddr));
 			if (connection_addr.ss_family == AF_INET6)
-				inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)&connection_addr)->sin6_addr), ipaddr, connection_addr_len);
+				inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)&connection_addr)->sin6_addr), ipaddr, INET6_ADDRSTRLEN);
 			else if (connection_addr.ss_family == AF_INET)
-				inet_ntop(AF_INET, &(((struct sockaddr_in *)&connection_addr)->sin_addr), ipaddr, connection_addr_len);
+				inet_ntop(AF_INET, &(((struct sockaddr_in *)&connection_addr)->sin_addr), ipaddr, INET6_ADDRSTRLEN);
 			printf("Forked process %d for connection %s.\n", getpid(), ipaddr);
 			handle_connection(connection_fd, ipaddr);
 		}
