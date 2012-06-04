@@ -22,6 +22,8 @@
 #include <pwd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <netinet/in.h>
 
 /*
@@ -336,6 +338,7 @@ void negotiate_telnet()
 void drop_privileges()
 {
 	struct passwd *user;
+	struct rlimit limit;
 	
 	if (geteuid() == 0) {
 		user = getpwnam("nobody");
@@ -368,12 +371,31 @@ void drop_privileges()
 			exit(EXIT_FAILURE);
 		}
 	}
+	
+	
+	
+	limit.rlim_cur = limit.rlim_max = 4194304 /* 4 megs */;
+	setrlimit(RLIMIT_DATA, &limit);
+	setrlimit(RLIMIT_FSIZE, &limit);
+	setrlimit(RLIMIT_MEMLOCK, &limit);
+	setrlimit(RLIMIT_AS, &limit);
+	setrlimit(RLIMIT_STACK, &limit);
+	limit.rlim_cur = limit.rlim_max = 0;
+	setrlimit(RLIMIT_CORE, &limit);
+	limit.rlim_cur = limit.rlim_max = 100;
+	setrlimit(RLIMIT_NPROC, &limit);
 }
 
 void handle_connection(int fd, char *ipaddr)
 {
 	char username[1024];
 	char password[1024];
+	struct rlimit limit;
+	
+	limit.rlim_cur = limit.rlim_max = 60;
+	setrlimit(RLIMIT_CPU, &limit);
+	limit.rlim_cur = limit.rlim_max = 0;
+	setrlimit(RLIMIT_NPROC, &limit);
 	
 	input = fdopen(fd, "r");
 	if (!input) {
