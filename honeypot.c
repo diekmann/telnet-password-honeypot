@@ -516,6 +516,7 @@ int main(int argc, char *argv[])
 		(connection_fd = accept(listen_fd, (struct sockaddr *)&connection_addr, &connection_addr_len)) >= 0) {
 		child = fork();
 		if (child < 0) {
+			close(connection_fd);
 			perror("fork");
 			continue;
 		}
