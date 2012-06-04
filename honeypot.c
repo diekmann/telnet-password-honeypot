@@ -500,6 +500,8 @@ int main(int argc, char *argv[])
 		if (!child) {
 			char ipaddr[INET6_ADDRSTRLEN];
 			struct in6_addr *v6;
+			
+			close(listen_fd);
 			memset(ipaddr, 0, sizeof(ipaddr));
 			if (connection_addr.ss_family == AF_INET6) {
 				v6 = &(((struct sockaddr_in6 *)&connection_addr)->sin6_addr);
@@ -511,7 +513,8 @@ int main(int argc, char *argv[])
 				inet_ntop(AF_INET, &(((struct sockaddr_in *)&connection_addr)->sin_addr), ipaddr, INET_ADDRSTRLEN);
 			printf("Forked process %d for connection %s.\n", getpid(), ipaddr);
 			handle_connection(connection_fd, ipaddr);
-		}
+		} else
+			close(connection_fd);
 	}
 	fclose(logfile);
 	return 0;
