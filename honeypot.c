@@ -228,19 +228,19 @@ void set_options()
 {
 	int option;
 	
-	/* We will not echo input */
+	/* We will echo input */
 	telnet_options[ECHO] = WILL;
 	/* We will set graphics modes */
 	telnet_options[SGA] = WILL;
 	/* We will not set new environments */
 	telnet_options[NEW_ENVIRON] = WONT;
 	
-	/* The client should echo its own input */
+	/* The client should not echo its own input */
 	telnet_willack[ECHO] = DONT;
 	/* The client can set a graphics mode */
 	telnet_willack[SGA] = DO;
-	/* The client should not change, but it should tell us its window size */
-	telnet_willack[NAWS] = DO;
+	/* We do not care about window size updates */
+	telnet_willack[NAWS] = DONT;
 	/* The client should tell us its terminal type (very important) */
 	telnet_willack[TTYPE] = DO;
 	/* No linemode */
@@ -267,7 +267,7 @@ void negotiate_telnet()
 {
 	/* The default terminal is ANSI */
 	char term[1024] = {'a','n','s','i', 0};
-	int ttype, done = 0, sb_mode = 0, do_echo = 0, terminal_width = 80, sb_len = 0;
+	int ttype, done = 0, sb_mode = 0, do_echo = 0, sb_len = 0;
 	/* Various pieces for the telnet communication */
 	char sb[1024];
 	unsigned char opt, i;
@@ -281,7 +281,7 @@ void negotiate_telnet()
 	alarm(1);
 
 	/* Let's do this */
-	while (!feof(stdin) && done < 2) {
+	while (!feof(stdin) && done < 1) {
 		/* Get either IAC (start command) or a regular character (break, unless in SB mode) */
 		i = getc(input);
 		if (i == IAC) {
@@ -292,19 +292,12 @@ void negotiate_telnet()
 					/* End of extended option mode */
 					sb_mode = 0;
 					if (sb[0] == TTYPE) {
+						alarm(0);
+						is_telnet_client = 1;
 						/* This was a response to the TTYPE command, meaning
 						 * that this should be a terminal type */
-						alarm(0);
-						is_telnet_client = 1;
 						strncpy(term, &sb[2], sizeof(term) - 1);
 						term[sizeof(term) - 1] = 0;
-						++done;
-					} else if (sb[0] == NAWS) {
-						/* This was a response to the NAWS command, meaning
-						 * that this should be a window size */
-						alarm(0);
-						is_telnet_client = 1;
-						terminal_width = sb[2];
 						++done;
 					}
 					break;
