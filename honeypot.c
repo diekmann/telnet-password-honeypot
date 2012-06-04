@@ -499,11 +499,16 @@ int main(int argc, char *argv[])
 		}
 		if (!child) {
 			char ipaddr[INET6_ADDRSTRLEN];
+			struct in6_addr *v6;
 			memset(ipaddr, 0, sizeof(ipaddr));
-			if (connection_addr.ss_family == AF_INET6)
-				inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)&connection_addr)->sin6_addr), ipaddr, INET6_ADDRSTRLEN);
-			else if (connection_addr.ss_family == AF_INET)
-				inet_ntop(AF_INET, &(((struct sockaddr_in *)&connection_addr)->sin_addr), ipaddr, INET6_ADDRSTRLEN);
+			if (connection_addr.ss_family == AF_INET6) {
+				v6 = &(((struct sockaddr_in6 *)&connection_addr)->sin6_addr);
+				if (v6->s6_addr32[0] == 0 && v6->s6_addr32[1] == 0 && v6->s6_addr16[4] == 0 && v6->s6_addr16[5] == 0xFFFF)
+					inet_ntop(AF_INET, &v6->s6_addr32[3], ipaddr, INET_ADDRSTRLEN);
+				else
+					inet_ntop(AF_INET6, v6, ipaddr, INET6_ADDRSTRLEN);
+			} else if (connection_addr.ss_family == AF_INET)
+				inet_ntop(AF_INET, &(((struct sockaddr_in *)&connection_addr)->sin_addr), ipaddr, INET_ADDRSTRLEN);
 			printf("Forked process %d for connection %s.\n", getpid(), ipaddr);
 			handle_connection(connection_fd, ipaddr);
 		}
