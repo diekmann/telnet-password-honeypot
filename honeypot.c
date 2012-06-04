@@ -37,6 +37,7 @@
 FILE *input = 0;
 FILE *output = 0;
 FILE *logfile = 0;
+int is_telnet_client = 0;
 
 /*
  * Telnet requires us to send a specific sequence
@@ -73,12 +74,21 @@ void SIGINT_handler(int sig)
 void SIGALRM_handler(int sig)
 {
 	alarm(0);
-	fprintf(stderr, "Bad telnet negotiation, exiting.\n");
-	fprintf(output, "\033[?25h\033[0m\033[H\033[2J");
-	fprintf(output, "\033[1;31m*** You must connect using a real telnet client. ***\033[0m");
-	newline(1);
-	fflush(output);
-	_exit(EXIT_FAILURE);
+	if (!is_telnet_client) {
+		fprintf(stderr, "Bad telnet negotiation, exiting.\n");
+		fprintf(output, "\033[?25h\033[0m\033[H\033[2J");
+		fprintf(output, "\033[1;31m*** You must connect using a real telnet client. ***\033[0m");
+		newline(1);
+		fflush(output);
+		_exit(EXIT_FAILURE);
+	} else {
+		fprintf(stderr, "Timeout reached, exiting.\n");
+		newline(3);
+		fprintf(output, "\033[1;33m*** Authentication timed out. Please reconnect. ***\033[0m\033[?25h");
+		newline(2);
+		fflush(output);
+		_exit(EXIT_SUCCESS);
+	}
 }
 
 /*
@@ -259,6 +269,7 @@ void negotiate_telnet()
 						/* This was a response to the TTYPE command, meaning
 						 * that this should be a terminal type */
 						alarm(0);
+						is_telnet_client = 1;
 						strncpy(term, &sb[2], sizeof(term) - 1);
 						term[sizeof(term) - 1] = 0;
 						++done;
@@ -266,6 +277,7 @@ void negotiate_telnet()
 						/* This was a response to the NAWS command, meaning
 						 * that this should be a window size */
 						alarm(0);
+						is_telnet_client = 1;
 						terminal_width = sb[2];
 						++done;
 					}
@@ -392,7 +404,7 @@ void handle_connection(int fd, char *ipaddr)
 	char password[1024];
 	struct rlimit limit;
 	
-	limit.rlim_cur = limit.rlim_max = 60;
+	limit.rlim_cur = limit.rlim_max = 90;
 	setrlimit(RLIMIT_CPU, &limit);
 	limit.rlim_cur = limit.rlim_max = 0;
 	setrlimit(RLIMIT_NPROC, &limit);
@@ -414,6 +426,9 @@ void handle_connection(int fd, char *ipaddr)
 	signal(SIGINT, SIGINT_handler);
 	
 	negotiate_telnet();
+	
+	/* Quit after a minute and a half. */
+	alarm(90);
 
 	/* Attempt to set terminal title for various different terminals. */
 	fprintf(output, "\033kWelcome to kexec.com\033\134");
@@ -452,7 +467,7 @@ void handle_connection(int fd, char *ipaddr)
 		fprintf(output, "                  \033[1mkexec.com Administration Console\033[0m");
 		newline(2);
 		if (!strchr(username, '@')) {
-			fprintf(output, "\033[1;34mBe sure to include the domain in your username (e.g. @gmail.com).");
+			fprintf(output, "\033[1;34mBe sure to include the domain in your username (e.g. @gmail.com).\033[0m");
 			newline(2);
 		}
 		fflush(output);
