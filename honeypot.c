@@ -87,13 +87,16 @@ void newline(int n)
 
 
 /*
- * In the standalone mode, we want to handle an interrupt signal
- * (^C) so that we can restore the cursor and clear the terminal.
+ * When the listener dies, we want to kill the clients too, but
+ * first we make sure to send a nice message and restore the cursor.
  */
 void SIGINT_handler(int sig)
 {
-	fprintf(stderr, "Got CTRL+C, exiting gracefully.\n");
-	fprintf(output, "\033[?25h\033[0m\033[H\033[2J");
+	fprintf(stderr, "Got SIGINT, exiting gracefully.\n");
+	newline(3);
+	fprintf(output, "\033[1;33m*** Server shutting down. Goodbye. ***\033[0m\033[?25h");
+	newline(2);
+	fflush(output);
 	_exit(EXIT_SUCCESS);
 }
 
@@ -654,9 +657,9 @@ int main(int argc, char *argv[])
 		if (!child) {
 			char ipaddr[INET6_ADDRSTRLEN];
 			struct in6_addr *v6;
-			prctl(PR_SET_PDEATHSIG, SIGHUP);
+			prctl(PR_SET_PDEATHSIG, SIGINT);
 			if (getppid() == 1)
-				kill(getpid(), SIGHUP);
+				kill(getpid(), SIGINT);
 			prctl(PR_SET_NAME, "honeypot serve");
 			close(listen_fd);
 			memset(ipaddr, 0, sizeof(ipaddr));
