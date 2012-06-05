@@ -176,11 +176,12 @@ void readline(char *buffer, size_t size, int password)
 				i -= 2;
 				continue;
 			}
-		} else if (iscntrl(c)) {
-			--i;
-			continue;
 		} else if (c == 0xff)
 			_exit(EXIT_SUCCESS);
+		else if (iscntrl(c)) {
+			--i;
+			continue;
+		}
 		buffer[i] = c;
 		putc(password ? '*' : c, output);
 		fflush(output);
