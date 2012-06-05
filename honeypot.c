@@ -516,8 +516,7 @@ void handle_connection(int fd, char *ipaddr)
 
 int main(int argc, char *argv[])
 {
-	int listen_fd, connection_fd;
-	char flag;
+	int listen_fd, connection_fd, flag;
 	struct sockaddr_in6 listen_addr;
 	struct sockaddr_storage connection_addr;
 	socklen_t connection_addr_len;
