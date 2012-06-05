@@ -129,8 +129,8 @@ void SIGCHLD_handler(int sig)
 	int status;
 	pid_t pid;
 	
-	pid = wait(&status);
-	printf("Process %d has exited with code %d.\n", pid, WEXITSTATUS(status));
+	while ((pid = wait(-1, &status, WNOHANG)) > 0)
+		printf("Process %d has exited with code %d.\n", pid, WEXITSTATUS(status));
 }
 
 /*
@@ -444,9 +444,15 @@ void handle_connection(int fd, char *ipaddr)
 	}
 	
 	/* Set the alarm handler to quit on bad telnet clients. */
-	signal(SIGALRM, SIGALRM_handler);
+	if (signal(SIGALRM, SIGALRM_handler) == SIG_ERR) {
+		perror("signal");
+		_exit(EXIT_FAILURE);
+	}
 	/* Accept ^C -> restore cursor. */
-	signal(SIGINT, SIGINT_handler);
+	if (signal(SIGINT, SIGINT_handler) == SIG_ERR) {
+		perror("signal");
+		_exit(EXIT_FAILURE);
+	}
 	
 	negotiate_telnet();
 	
@@ -662,6 +668,7 @@ int main(int argc, char *argv[])
 				inet_ntop(AF_INET, &(((struct sockaddr_in *)&connection_addr)->sin_addr), ipaddr, INET_ADDRSTRLEN);
 			printf("Forked process %d for connection %s.\n", getpid(), ipaddr);
 			handle_connection(connection_fd, ipaddr);
+			_exit(EXIT_FAILURE);
 		} else
 			close(connection_fd);
 	}
