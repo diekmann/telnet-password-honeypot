@@ -46,9 +46,13 @@
 #include <unistd.h>
 #include <signal.h>
 #include <pwd.h>
+#include <getopt.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/prctl.h>
+#include <sys/stat.h>
 #include <sys/resource.h>
 #include <netinet/in.h>
 
@@ -371,7 +375,7 @@ void drop_privileges()
 	struct passwd *user;
 	struct rlimit limit;
 	
-	if (geteuid() == 0) {
+	if (!geteuid()) {
 		user = getpwnam("nobody");
 		if (!user) {
 			perror("getpwnam");
@@ -503,14 +507,76 @@ int main(int argc, char *argv[])
 	struct sockaddr_storage connection_addr;
 	socklen_t connection_addr_len;
 	pid_t child;
-	
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s LOGFILE\n", argv[0]);
-		return EXIT_FAILURE;
+
+	int daemonize = 0, option_index = 0, debug_file, option;
+	char *debug_log = 0, *honey_log = 0, *pid_file = 0;
+	FILE *pidfile;
+	static struct option long_options[] = {
+		{"daemonize", no_argument, NULL, 'd'},
+		{"foreground", no_argument, NULL, 'f'},
+		{"debug-log", required_argument, NULL, 'l'},
+		{"honey-log", required_argument, NULL, 'o'},
+		{"pid-file", required_argument, NULL, 'p'},
+		{"help", no_argument, NULL, 'h'},
+		{0, 0, 0, 0}
+	};
+
+	while ((option = getopt_long(argc, argv, "dfl:o:p:h", long_options, &option_index)) != -1) {
+		switch (option) {
+			case 'd':
+				daemonize = 1;
+				break;
+			case 'f':
+				daemonize = 0;
+				break;
+			case 'l':
+				debug_log = optarg;
+				break;
+			case 'o':
+				honey_log = optarg;
+				break;
+			case 'p':
+				pid_file = optarg;
+				break;
+			case 'h':
+			case '?':
+			default:
+				fprintf(stderr, "Honeypot Telnet Server by zx2c4\n\n");
+				fprintf(stderr, "Usage: %s [OPTION]...\n", argv[0]);
+				fprintf(stderr, "  -d, --daemonize              run as a background daemon\n");
+				fprintf(stderr, "  -f, --foreground             run in the foreground (default)\n");
+				fprintf(stderr, "  -l FILE, --debug-log=FILE    log debug messages to FILE instead of to stdout/stderr\n");
+				fprintf(stderr, "  -o FILE, --honey-log=FILE    log collected honey information to FILE\n");
+				fprintf(stderr, "  -p FILE, --pid-file=FILE     write pid of listener process to FILE\n");
+				fprintf(stderr, "  -h, --help                   display this message\n");
+				return option == 'h' ? EXIT_SUCCESS : EXIT_FAILURE;
+		}
+	}
+	if (debug_log) {
+		debug_file = open(debug_log, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+		if (debug_file < 0) {
+			perror("open");
+			return EXIT_FAILURE;
+		}
+		if (dup2(debug_file, STDOUT_FILENO) < 0) {
+			perror("dup2");
+			return EXIT_FAILURE;
+		}
+		if (dup2(debug_file, STDERR_FILENO) < 0) {
+			perror("dup2");
+			return EXIT_FAILURE;
+		}
+		close(debug_file);
+		setbuf(stdout, NULL);
+		setbuf(stderr, NULL);
+	}
+	if (!honey_log) {
+		fprintf(stderr, "Warning: collected honey information is not being logged anywhere. See the --honey-log option.\n");
+		honey_log = "/dev/null";
 	}
 	
 	/* We open the log file before chrooting. */
-	logfile = fopen(argv[1], "a");
+	logfile = fopen(honey_log, "a");
 	if (!logfile) {
 		perror("fopen");
 		return EXIT_FAILURE;
@@ -539,9 +605,32 @@ int main(int argc, char *argv[])
 		perror("listen");
 		return EXIT_FAILURE;
 	}
+
+	if (pid_file) {
+		pidfile = fopen(pid_file, "w");
+		if (!pidfile) {
+			perror("fopen");
+			return EXIT_FAILURE;
+		}
+	}
+	if (daemonize) {
+		if (daemon(0, debug_log != 0) < 0) {
+			perror("daemon");
+			return EXIT_FAILURE;
+		}
+	}
+	if (pid_file) {
+		if (fprintf(pidfile, "%d\n", getpid()) < 0) {
+			perror("fprintf");
+			return EXIT_FAILURE;
+		}
+		fclose(pidfile);
+	}
 	
 	/* Before accepting any connections, we chroot. */
 	drop_privileges();
+
+	prctl(PR_SET_NAME, "honeypot listen");
 	
 	/* Print message when child exits. */
 	signal(SIGCHLD, SIGCHLD_handler);
@@ -558,6 +647,7 @@ int main(int argc, char *argv[])
 			char ipaddr[INET6_ADDRSTRLEN];
 			struct in6_addr *v6;
 			
+			prctl(PR_SET_NAME, "honeypot serve");
 			close(listen_fd);
 			memset(ipaddr, 0, sizeof(ipaddr));
 			if (connection_addr.ss_family == AF_INET6) {
