@@ -128,8 +128,8 @@ void SIGCHLD_handler(int sig)
 {
 	int status;
 	pid_t pid;
-	
-	while ((pid = wait(-1, &status, WNOHANG)) > 0)
+
+	while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
 		printf("Process %d has exited with code %d.\n", pid, WEXITSTATUS(status));
 }
 
@@ -647,14 +647,16 @@ int main(int argc, char *argv[])
 		(connection_fd = accept(listen_fd, (struct sockaddr *)&connection_addr, &connection_addr_len)) >= 0) {
 		child = fork();
 		if (child < 0) {
-			close(connection_fd);
 			perror("fork");
+			close(connection_fd);
 			continue;
 		}
 		if (!child) {
 			char ipaddr[INET6_ADDRSTRLEN];
 			struct in6_addr *v6;
-			
+			prctl(PR_SET_PDEATHSIG, SIGHUP);
+			if (getppid() == 1)
+				kill(getpid(), SIGHUP);
 			prctl(PR_SET_NAME, "honeypot serve");
 			close(listen_fd);
 			memset(ipaddr, 0, sizeof(ipaddr));
