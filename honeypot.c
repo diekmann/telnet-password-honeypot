@@ -153,9 +153,11 @@ void readline(char *buffer, size_t size, int password)
 		if (feof(input))
 			_exit(EXIT_SUCCESS);
 		c = getc(input);
-		if (!c)
-			c = getc(input);
-		if (c == '\n' || c == '\r') {
+		if (c == '\r' || c == '\n') {
+			if (c == '\r') {
+				/* the next char is either \n or \0, which we can discard. */
+				getc(input);
+			}
 			newline(1);
 			break;
 		} else if (c == '\b' || c == 0x7f) {
