@@ -521,6 +521,8 @@ int main(int argc, char *argv[])
 		{0, 0, 0, 0}
 	};
 
+	close(STDIN_FILENO);
+
 	while ((option = getopt_long(argc, argv, "dfl:o:p:h", long_options, &option_index)) != -1) {
 		switch (option) {
 			case 'd':
