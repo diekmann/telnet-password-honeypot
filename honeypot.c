@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <signal.h>
 #include <pwd.h>
@@ -173,6 +174,9 @@ void readline(char *buffer, size_t size, int password)
 				i -= 2;
 				continue;
 			}
+		} else if (iscntrl(c)) {
+			--i;
+			continue;
 		} else if (c == 0xff)
 			_exit(EXIT_SUCCESS);
 		buffer[i] = c;
