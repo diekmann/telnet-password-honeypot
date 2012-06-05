@@ -1,0 +1,20 @@
+#!/sbin/runscript
+# Copyright 2012 Jason A. Donenfeld <Jason@zx2c4.com>
+
+PID_FILE="/var/run/honeypot.pid"
+
+depend() {
+	need net
+}
+
+start() {
+	ebegin "Starting honeypot"
+	start-stop-daemon --start --exec /usr/bin/honeypot --pidfile $PID_FILE -- --daemonize --pid-file=$PID_FILE --honey-log=/var/log/honey.log --debug-log=/var/log/honeypot.log
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping honeypot"
+	start-stop-daemon --stop --exec /usr/bin/honeypot --pidfile $PID_FILE
+	eend $?
+}
