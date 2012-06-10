@@ -291,8 +291,8 @@ void negotiate_telnet()
 	/* Set the default options. */
 	set_options();	
 
-	/* We will stop handling options after one second */
-	alarm(1);
+	/* We will stop handling options after three seconds */
+	alarm(3);
 
 	/* Let's do this */
 	while (!feof(stdin) && done < 1) {
