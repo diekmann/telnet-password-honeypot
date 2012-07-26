@@ -324,6 +324,8 @@ void negotiate_telnet()
 				case WONT:
 					/* Will / Won't Negotiation */
 					opt = getc(input);
+					if (opt < 0 || opt >= sizeof(telnet_willack))
+						_exit(EXIT_FAILURE);
 					if (!telnet_willack[opt])
 						/* We default to WONT */
 						telnet_willack[opt] = WONT;
@@ -339,6 +341,8 @@ void negotiate_telnet()
 				case DONT:
 					/* Do / Don't Negotiation */
 					opt = getc(input);
+					if (opt < 0 || opt >= sizeof(telnet_options))
+						_exit(EXIT_FAILURE);
 					if (!telnet_options[opt])
 						/* We default to DONT */
 						telnet_options[opt] = DONT;
