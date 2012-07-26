@@ -427,8 +427,9 @@ void drop_privileges()
 	setrlimit(RLIMIT_DATA, &limit);
 	setrlimit(RLIMIT_FSIZE, &limit);
 	setrlimit(RLIMIT_MEMLOCK, &limit);
-	setrlimit(RLIMIT_AS, &limit);
 	setrlimit(RLIMIT_STACK, &limit);
+	limit.rlim_cur = limit.rlim_max = 15728640 /* 15 megabytes */;
+	setrlimit(RLIMIT_AS, &limit);
 	limit.rlim_cur = limit.rlim_max = 0;
 	setrlimit(RLIMIT_CORE, &limit);
 	limit.rlim_cur = limit.rlim_max = 100;
