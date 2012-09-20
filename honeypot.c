@@ -285,7 +285,7 @@ void negotiate_telnet()
 	/* Various pieces for the telnet communication */
 	char sb[1024];
 	unsigned char opt, i;
-	memset(sb, 0, 1024);
+	memset(sb, 0, sizeof(sb));
 	
 	
 	/* Set the default options. */
