@@ -434,6 +434,8 @@ void drop_privileges()
 	setrlimit(RLIMIT_CORE, &limit);
 	limit.rlim_cur = limit.rlim_max = 100;
 	setrlimit(RLIMIT_NPROC, &limit);
+
+	prctl(PR_SET_NO_NEW_PRIVS, 1);
 }
 
 void handle_connection(int fd, char *ipaddr)
