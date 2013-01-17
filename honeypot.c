@@ -64,6 +64,8 @@
  *  a protocol, and not just raw text transmission)
  */
 #include "telnet.h"
+#include "seccomp-bpf.h"
+
 
 FILE *input = 0;
 FILE *output = 0;
@@ -435,7 +437,36 @@ void drop_privileges()
 	limit.rlim_cur = limit.rlim_max = 100;
 	setrlimit(RLIMIT_NPROC, &limit);
 
-	prctl(PR_SET_NO_NEW_PRIVS, 1);
+	if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)) {
+		perror("prctl(NO_NEW_PRIVS");
+		exit(EXIT_FAILURE);
+	}
+}
+
+void seccomp_enable_filter()
+{
+	struct sock_filter filter[] = {
+		VALIDATE_ARCHITECTURE,
+		EXAMINE_SYSCALL,
+		ALLOW_SYSCALL(rt_sigreturn),
+		ALLOW_SYSCALL(rt_sigprocmask),
+		ALLOW_SYSCALL(rt_sigaction),
+		ALLOW_SYSCALL(nanosleep),
+		ALLOW_SYSCALL(exit_group),
+		ALLOW_SYSCALL(exit),
+		ALLOW_SYSCALL(read),
+		ALLOW_SYSCALL(write),
+		ALLOW_SYSCALL(alarm),
+		KILL_PROCESS
+	};
+	struct sock_fprog prog = {
+		.len = (unsigned short)(sizeof(filter) / sizeof(filter[0])),
+		.filter = filter
+	};
+	if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog)) {
+		perror("prctl(SECCOMP)");
+		exit(EXIT_FAILURE);
+	}
 }
 
 void handle_connection(int fd, char *ipaddr)
@@ -443,12 +474,12 @@ void handle_connection(int fd, char *ipaddr)
 	char username[1024];
 	char password[1024];
 	struct rlimit limit;
-	
+
 	limit.rlim_cur = limit.rlim_max = 90;
 	setrlimit(RLIMIT_CPU, &limit);
 	limit.rlim_cur = limit.rlim_max = 0;
 	setrlimit(RLIMIT_NPROC, &limit);
-	
+
 	input = fdopen(fd, "r");
 	if (!input) {
 		perror("fdopen");
@@ -459,6 +490,8 @@ void handle_connection(int fd, char *ipaddr)
 		perror("fdopen");
 		_exit(EXIT_FAILURE);
 	}
+
+	seccomp_enable_filter();
 	
 	/* Set the alarm handler to quit on bad telnet clients. */
 	if (signal(SIGALRM, SIGALRM_handler) == SIG_ERR) {
@@ -470,7 +503,7 @@ void handle_connection(int fd, char *ipaddr)
 		perror("signal");
 		_exit(EXIT_FAILURE);
 	}
-	
+
 	negotiate_telnet();
 	
 	/* Quit after a minute and a half. */

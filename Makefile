@@ -1,1 +1,1 @@
-honeypot: honeypot.c telnet.h
+honeypot: honeypot.c telnet.h seccomp-bpf.h
