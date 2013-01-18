@@ -270,7 +270,7 @@ void set_options()
 		if (telnet_options[option])
 			send_command(telnet_options[option], option);
 	}
-	for (option = 0; option < sizeof(telnet_options); ++option) {
+	for (option = 0; option < sizeof(telnet_willack); ++option) {
 		if (telnet_willack[option])
 			send_command(telnet_willack[option], option);
 	}
