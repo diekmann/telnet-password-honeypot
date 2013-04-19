@@ -510,14 +510,14 @@ void handle_connection(int fd, char *ipaddr)
 	alarm(90);
 
 	/* Attempt to set terminal title for various different terminals. */
-	fprintf(output, "\033kWelcome to kexec.com\033\134");
-	fprintf(output, "\033]1;Welcome to kexec.com\007");
-	fprintf(output, "\033]2;Welcome to kexec.com\007");
+	fprintf(output, "\033kWelcome to zx2c4.com\033\134");
+	fprintf(output, "\033]1;Welcome to zx2c4.com\007");
+	fprintf(output, "\033]2;Welcome to zx2c4.com\007");
 
 	/* Clear the screen */
 	fprintf(output, "\033[H\033[2J\033[?25l");
 	
-	fprintf(output, "                  \033[1mkexec.com Administration Console\033[0m");
+	fprintf(output, "                  \033[1mzx2c4.com Administration Console\033[0m");
 	newline(3);
 	fprintf(output, "This console uses \033[1;34mGoogle App Engine\033[0m for authentication. To login as");
 	newline(1);
@@ -543,7 +543,7 @@ void handle_connection(int fd, char *ipaddr)
 		fflush(output);
 		sleep(2);
 		fprintf(output, "\033[H\033[2J\033[?25l");
-		fprintf(output, "                  \033[1mkexec.com Administration Console\033[0m");
+		fprintf(output, "                  \033[1mzx2c4.com Administration Console\033[0m");
 		newline(2);
 		if (!strchr(username, '@')) {
 			fprintf(output, "\033[1;34mBe sure to include the domain in your username (e.g. @gmail.com).\033[0m");
