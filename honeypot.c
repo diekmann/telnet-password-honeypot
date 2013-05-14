@@ -523,7 +523,7 @@ void handle_connection(int fd, char *ipaddr)
 	newline(1);
 	fprintf(output, "an administrator, enter the admin account credentials. If you do not");
 	newline(1);
-	fprintf(output, "yet have an account on kexec, enter your \033[1m\033[34mG\033[31mo\033[33mo\033[34mg\033[32ml\033[31me\033[0m credentials to begin.");
+	fprintf(output, "yet have an account on zx2c4, enter your \033[1m\033[34mG\033[31mo\033[33mo\033[34mg\033[32ml\033[31me\033[0m credentials to begin.");
 	newline(4);
 	fflush(output);
 	
