@@ -33,22 +33,7 @@
  * 
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <signal.h>
-#include <pwd.h>
-#include <getopt.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/prctl.h>
-#include <sys/stat.h>
 #include <sys/resource.h>
-#include <netinet/in.h>
 
 /*
  * telnet.h contains some #defines for the various
