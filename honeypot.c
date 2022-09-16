@@ -55,7 +55,11 @@
 #include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <grp.h>
 
 #include "telnet_srv.h"
 
@@ -67,6 +71,7 @@
  */
 static void SIGCHLD_handler(int sig)
 {
+	(void) sig;
 	int status;
 	pid_t pid;
 
@@ -130,6 +135,11 @@ static void drop_privileges()
 
 	if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)) {
 		perror("prctl(NO_NEW_PRIVS");
+		exit(EXIT_FAILURE);
+	}
+
+	if (prctl(PR_SET_DUMPABLE, 0, 0, 0, 0)) {
+		perror("prctl(PR_SET_DUMPABLE)");
 		exit(EXIT_FAILURE);
 	}
 }

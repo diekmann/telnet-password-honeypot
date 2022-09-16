@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <sys/resource.h>
 
@@ -75,6 +76,11 @@ static void seccomp_enable_filter()
 		ALLOW_SYSCALL(read),
 		ALLOW_SYSCALL(write),
 		ALLOW_SYSCALL(alarm),
+		ALLOW_SYSCALL(fstat),
+		ALLOW_SYSCALL(newfstatat),
+		ALLOW_SYSCALL(mmap),
+		ALLOW_SYSCALL(ioctl),
+		ALLOW_SYSCALL(clock_nanosleep),
 		KILL_PROCESS
 	};
 	struct sock_fprog prog = {
@@ -111,6 +117,8 @@ static void newline(int n)
  */
 static void SIGINT_handler(int sig)
 {
+	(void) sig;
+
 	fprintf(stderr, "Got SIGINT, exiting gracefully.\n");
 	newline(3);
 	fprintf(output, "\033[1;33m*** Server shutting down. Goodbye. ***\033[0m\033[?25h");
@@ -125,6 +133,8 @@ static void SIGINT_handler(int sig)
  */
 static void SIGALRM_handler(int sig)
 {
+	(void) sig;
+
 	alarm(0);
 	if (!is_telnet_client) {
 		fprintf(stderr, "Bad telnet negotiation, exiting.\n");
@@ -148,7 +158,7 @@ static void SIGALRM_handler(int sig)
  */
 static void readline(char *buffer, size_t size, int password)
 {
-	int i;
+	unsigned int i;
 	unsigned char c;
 	
 	/* We make sure to restore the cursor. */
@@ -270,11 +280,11 @@ static void set_options()
 	
 	
 	/* Let the client know what we're using */
-	for (option = 0; option < sizeof(telnet_options); ++option) {
+	for (option = 0; option < (int)sizeof(telnet_options); ++option) {
 		if (telnet_options[option])
 			send_command(telnet_options[option], option);
 	}
-	for (option = 0; option < sizeof(telnet_willack); ++option) {
+	for (option = 0; option < (int)sizeof(telnet_willack); ++option) {
 		if (telnet_willack[option])
 			send_command(telnet_willack[option], option);
 	}
@@ -290,7 +300,8 @@ static void negotiate_telnet()
 	int ttype, done = 0, sb_mode = 0, do_echo = 0, sb_len = 0;
 	/* Various pieces for the telnet communication */
 	char sb[1024];
-	unsigned char opt, i;
+	// unsigned char opt, i;
+	int opt, i;
 	memset(sb, 0, sizeof(sb));
 	
 	
@@ -330,7 +341,7 @@ static void negotiate_telnet()
 				case WONT:
 					/* Will / Won't Negotiation */
 					opt = getc(input);
-					if (opt < 0 || opt >= sizeof(telnet_willack))
+					if (opt < 0 || opt >= (int)sizeof(telnet_willack))
 						_exit(EXIT_FAILURE);
 					if (!telnet_willack[opt])
 						/* We default to WONT */
@@ -347,7 +358,7 @@ static void negotiate_telnet()
 				case DONT:
 					/* Do / Don't Negotiation */
 					opt = getc(input);
-					if (opt < 0 || opt >= sizeof(telnet_options))
+					if (opt < 0 || opt >= (int)sizeof(telnet_options))
 						_exit(EXIT_FAILURE);
 					if (!telnet_options[opt])
 						/* We default to DONT */
@@ -372,7 +383,7 @@ static void negotiate_telnet()
 			}
 		} else if (sb_mode) {
 			/* Extended Option Mode -> Accept character */
-			if (sb_len < (sizeof(sb) - 1))
+			if (sb_len < (int)(sizeof(sb) - 1))
 				/* Append this character to the SB string,
 				 * but only if it doesn't put us over
 				 * our limit; honestly, we shouldn't hit
