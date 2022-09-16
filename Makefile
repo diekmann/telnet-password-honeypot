@@ -1,4 +1,5 @@
-CFLAGS		= -Wall -Wextra -O2 -DDEBUG #-ansi -std=c99  #-Werror
+CFLAGS		= -DSECCOMP
+CFLAGS		+= -Wall -Wextra -O2 -DDEBUG #-ansi -std=c99  #-Werror
 
 EXECUTABLE	= honeypot
 

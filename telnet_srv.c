@@ -51,8 +51,9 @@
  */
 #include "telnet.h"
 #include "telnet_srv.h"
+#ifdef SECCOMP
 #include "seccomp-bpf.h"
-
+#endif
 
 
 static FILE *input = 0;
@@ -61,7 +62,7 @@ FILE *logfile = 0;
 static int is_telnet_client = 0;
 
 
-
+#ifdef SECCOMP
 static void seccomp_enable_filter()
 {
 	struct sock_filter filter[] = {
@@ -92,6 +93,7 @@ static void seccomp_enable_filter()
 		exit(EXIT_FAILURE);
 	}
 }
+#endif
 
 
 /*
@@ -421,7 +423,9 @@ void handle_connection(int fd, char *ipaddr)
 		_exit(EXIT_FAILURE);
 	}
 
+#ifdef SECCOMP
 	seccomp_enable_filter();
+#endif
 	
 	/* Set the alarm handler to quit on bad telnet clients. */
 	if (signal(SIGALRM, SIGALRM_handler) == SIG_ERR) {
